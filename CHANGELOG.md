@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.6.1
+
+- Added a deterministic offline grant-review demo
+- Added the `osl-grant-demo` console command
+- Added machine-readable demo artifacts
+- Added paper-vs-batch accounting consistency output
+- Added reviewer-focused quick-start documentation
+- Reorganized the README around reproducibility and technical review
+
 ## 0.6.0
 
 - Added public dYdX WebSocket stream layer

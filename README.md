@@ -1,47 +1,147 @@
 # dYdX Open Strategy Lab
 
-Research-to-backtest and paper-trading tooling for systematic strategies on dYdX.
+Open Strategy Lab is a Python research, validation and paper-trading framework
+for systematic strategies on dYdX.
 
-The project is deliberately research-first. v0.6.0 contains no wallet handling,
-order signing or live-order code.
+The repository is intentionally research-first. It currently contains no
+mnemonic handling, private-key storage, transaction signing or live order
+placement.
 
-## Current reference strategies
+## Reviewer quick start
 
-### 1. Funding-Aware Directional Strategy
+A deterministic offline demonstration is included so the core framework can be
+reviewed without an exchange account, wallet or network connection.
 
-Uses persistent funding, momentum confirmation and realized volatility to decide
-whether a carry-biased directional setup is tradable.
+```bash
+python -m venv .venv
+source .venv/bin/activate
+pip install -e ".[dev]"
+osl-grant-demo
+```
 
-This is **not** presented as delta-neutral because there is no external hedge leg.
+The demo writes reviewer artifacts to:
 
-### 2. Cross-Sectional Market-Neutral Momentum
+```text
+artifacts/grant-demo/
+├── README.md
+├── summary.json
+├── walk_forward_folds.csv
+└── paper_fills.csv
+```
 
-Ranks a basket of dYdX perpetual markets by volatility-adjusted momentum, holds
-the strongest names long and the weakest names short, and keeps portfolio net
-exposure close to zero.
+Run the complete test suite with:
 
-### 3. Volatility-Regime Adaptive Strategy
+```bash
+pytest -q
+```
 
-Classifies realized volatility into low, normal and high regimes and scales
-target exposure accordingly.
+CI validates the repository on Python 3.11 and 3.12.
 
-## Data layer
+## What the demo exercises
 
-The public REST adapter follows the maintained dYdX Indexer endpoints used by
-the official v4 clients:
+The single command runs five independent parts of the framework:
 
-- `GET /v4/perpetualMarkets`
-- `GET /v4/candles/perpetualMarkets/{market}`
-- `GET /v4/historicalFunding/{market}`
+1. funding-aware single-market backtesting;
+2. volatility-regime adaptive backtesting;
+3. cross-sectional market-neutral portfolio backtesting;
+4. walk-forward out-of-sample validation;
+5. stateful paper replay.
 
-The public WebSocket layer follows:
+The paper replay and batch backtest are also compared as an accounting
+consistency check.
 
-- `v4_candles`
-- `v4_markets`
+The generated numbers are simulated research outputs. They are not presented as
+profitability claims.
 
-Mainnet public WebSocket endpoint:
+## Why this project exists
+
+Many strategy repositories combine data access, strategy logic, parameter
+selection and execution in one implementation. That makes it difficult to
+identify overfitting, accounting errors or execution assumptions.
+
+Open Strategy Lab separates:
+
+```text
+dYdX market data
+      ↓
+research datasets
+      ↓
+strategy logic
+      ↓
+validation / walk-forward testing
+      ↓
+backtest or paper execution
+      ↓
+analytics and reproducible outputs
+```
+
+The goal is a reusable framework rather than a single fixed trading bot.
+
+## Current capabilities
+
+### Market data
+
+Public dYdX Indexer support includes:
+
+- perpetual-market metadata;
+- candles;
+- historical funding;
+- explicit historical date ranges;
+- compressed local research cache;
+- public `v4_candles` WebSocket parsing;
+- public `v4_markets` WebSocket parsing.
+
+The maintained mainnet public WebSocket endpoint is:
 
 `wss://indexer.dydx.trade/v4/ws`
+
+### Validation
+
+The research layer includes:
+
+- one-bar signal delay;
+- fees and slippage;
+- funding cash-flow accounting;
+- leverage and exposure limits;
+- walk-forward parameter selection;
+- out-of-sample evaluation;
+- future-data leakage regression tests;
+- paper-vs-batch accounting equivalence tests.
+
+### Paper trading
+
+The stateful paper broker processes observations incrementally and maintains:
+
+- open position;
+- mark-to-market PnL;
+- confirmed funding input;
+- transaction costs;
+- equity and drawdown;
+- fill history.
+
+The public market feed may expose `nextFundingRate`. This is forward-looking
+market information and is not booked directly as a confirmed funding payment.
+
+## Reference strategies
+
+The repository includes three reference strategies used to exercise different
+parts of the framework.
+
+### Funding-Aware Directional Strategy
+
+Uses persistent funding, momentum confirmation and realized volatility.
+
+### Cross-Sectional Market-Neutral Momentum
+
+Ranks a basket of perpetual markets by volatility-adjusted momentum and builds
+balanced long/short exposure with gross and per-market risk limits.
+
+### Volatility-Regime Adaptive Strategy
+
+Uses rolling volatility regimes to scale target exposure instead of applying a
+fixed position size.
+
+These strategies are framework examples, not guaranteed profitable systems.
 
 ## Repository layout
 
@@ -49,6 +149,7 @@ Mainnet public WebSocket endpoint:
 src/open_strategy_lab/
 ├── analytics.py
 ├── backtest.py
+├── demo.py
 ├── paper.py
 ├── portfolio_backtest.py
 ├── risk.py
@@ -67,82 +168,38 @@ src/open_strategy_lab/
     └── volatility_regime.py
 ```
 
-## Install
+## Network examples
+
+Historical public data:
 
 ```bash
-python -m venv .venv
-source .venv/bin/activate
-pip install -e ".[dev]"
+python examples/fetch_historical_range.py
 ```
 
-## Run tests
+Public WebSocket stream:
 
 ```bash
-pytest -q
+python examples/run_public_stream.py
 ```
 
-## Historical dYdX datasets
-
-The historical loader pages explicit date ranges and can cache compressed CSV
-datasets locally. Funding is aligned backward to candles so future funding
-observations are never applied to prior candles.
-
-## Walk-forward validation
-
-Parameter selection occurs on a training window. The chosen configuration is
-then evaluated on the next unseen window, and only out-of-sample results are
-aggregated.
-
-```bash
-python examples/run_walk_forward_demo.py
-```
-
-## Stateful paper trading
-
-The paper broker processes market observations incrementally and maintains
-equity, open position, funding cash flow, transaction costs and fill history.
-
-The paper accounting model is regression-tested against the batch backtester.
-
-```bash
-python examples/run_paper_demo.py
-```
-
-## Public market stream
-
-The WebSocket layer can subscribe to candle and market updates without private
-account access.
-
-```python
-from open_strategy_lab import PublicMarketStream
-
-stream = PublicMarketStream(
-    on_candle=print,
-    on_market=print,
-)
-
-stream.add_candles("BTC-USD", "1HOUR")
-stream.add_markets()
-stream.run_forever()
-```
-
-The `v4_markets` feed may expose `nextFundingRate`. This is a forward-looking
-market value and is **not treated as a confirmed funding payment** by the paper
-broker. Confirmed funding settlement must come from an appropriate historical or
-settlement data source before being booked into PnL.
-
-## Scope
-
-v0.6.0 is suitable for research, paper-trading experiments and grant-prototype
-review. It is not production trading software and makes no claim that the
-included strategies are profitable.
-
-Wallet handling, signing and live order placement remain intentionally out of
-scope.
-
+Network examples are separate from the deterministic reviewer demo and unit
+tests.
 
 ## Technical documentation
 
 - [Architecture](docs/ARCHITECTURE.md)
 - [Research methodology](docs/RESEARCH_METHODOLOGY.md)
-- [Technical status and grant milestones](docs/TECHNICAL_STATUS.md)
+- [Technical status and milestones](docs/TECHNICAL_STATUS.md)
+- [Proposed grant scope](docs/GRANT_SCOPE.md)
+
+## Scope and safety boundary
+
+v0.6.1 is a research and paper-trading prototype. Wallet handling, signing and
+live order placement remain intentionally outside the current package.
+
+A future execution adapter should remain isolated from the research layer and
+use maintained dYdX clients with runtime-managed signing material.
+
+## License
+
+MIT.
