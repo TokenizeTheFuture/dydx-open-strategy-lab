@@ -2,7 +2,7 @@ name: tests
 
 on:
   push:
-    branches: ["main", "v0.3-walk-forward"]
+    branches: ["main", "v0.*"]
   pull_request:
 
 jobs:
