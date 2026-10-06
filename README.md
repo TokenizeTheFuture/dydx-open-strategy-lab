@@ -2,7 +2,7 @@
 
 Research-to-backtest tooling for systematic strategies on dYdX.
 
-The project is deliberately research-first. v0.2 contains no wallet handling,
+The project is deliberately research-first. v0.3.1 contains no wallet handling,
 order signing or live-order code.
 
 ## Current reference strategies
@@ -100,9 +100,47 @@ synthetic demos are deterministic and work offline.
 
 ## Scope
 
-v0.2 is suitable for research and grant-prototype review. It is not production
+v0.3.1 is suitable for research and grant-prototype review. It is not production
 trading software and makes no claim that the included strategies are profitable.
 
 Future milestones are expected to add longer historical-data collection,
 walk-forward validation, volatility-regime logic, paper trading and a separate
 execution adapter.
+
+
+## Historical dYdX datasets
+
+The historical loader collects explicit date ranges rather than relying on a
+single API response. Candle requests page forward using `fromISO` and `toISO`.
+Historical funding pages backward using `effectiveBeforeOrAt`.
+
+```python
+from open_strategy_lab.data import CsvCache, DydxHistoricalData, DydxIndexer
+
+loader = DydxHistoricalData(
+    DydxIndexer(),
+    cache=CsvCache(".cache/open_strategy_lab"),
+)
+
+frame = loader.research_frame(
+    "BTC-USD",
+    "2026-09-01T00:00:00Z",
+    "2026-09-07T00:00:00Z",
+)
+```
+
+Funding values are aligned backward to candles so a candle never receives a
+funding observation from the future.
+
+## Walk-forward validation
+
+The framework can select strategy parameters on a training window and then
+evaluate the chosen configuration on the next unseen test window. The process
+rolls forward and aggregates out-of-sample results only.
+
+```bash
+python examples/run_walk_forward_demo.py
+```
+
+This is intended to make overfitting easier to detect before a strategy reaches
+paper or live trading.
