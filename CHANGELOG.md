@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.5.0
+
+- Added stateful paper broker for incremental market updates
+- Added fill ledger and account snapshots
+- Added mark-to-market, funding, fee and slippage accounting
+- Added fractional target exposure support in paper mode
+- Added replay-vs-backtest accounting regression test
+- Added paper replay demo
+- Kept wallet, signing and live-order handling out of scope
+
 ## 0.4.0
 
 - Added volatility-regime adaptive reference strategy
