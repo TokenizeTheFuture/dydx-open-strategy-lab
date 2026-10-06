@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.4.0
+
+- Added volatility-regime adaptive reference strategy
+- Added fractional target exposure support for single-market strategies
+- Added rolling volatility regime classification
+- Added configurable low/normal/high risk scaling
+- Added future-data leakage and exposure behavior tests
+- Added volatility-regime demo
+- Generalized CI to all v0 development branches
+
 ## 0.3.1
 
 - Added dedicated dYdX historical range loader

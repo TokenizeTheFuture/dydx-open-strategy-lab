@@ -2,7 +2,7 @@
 
 Research-to-backtest tooling for systematic strategies on dYdX.
 
-The project is deliberately research-first. v0.3.1 contains no wallet handling,
+The project is deliberately research-first. v0.4.0 contains no wallet handling,
 order signing or live-order code.
 
 ## Current reference strategies
@@ -58,7 +58,7 @@ src/open_strategy_lab/
     ├── base.py
     ├── portfolio_base.py
     ├── funding_aware.py
-    └── cross_sectional_momentum.py
+    ├── cross_sectional_momentum.py\n    └── volatility_regime.py
 ```
 
 ## Install
@@ -100,11 +100,11 @@ synthetic demos are deterministic and work offline.
 
 ## Scope
 
-v0.3.1 is suitable for research and grant-prototype review. It is not production
+v0.4.0 is suitable for research and grant-prototype review. It is not production
 trading software and makes no claim that the included strategies are profitable.
 
 Future milestones are expected to add longer historical-data collection,
-walk-forward validation, volatility-regime logic, paper trading and a separate
+walk-forward validation, paper trading and a separate
 execution adapter.
 
 
@@ -144,3 +144,23 @@ python examples/run_walk_forward_demo.py
 
 This is intended to make overfitting easier to detect before a strategy reaches
 paper or live trading.
+
+
+## Volatility-regime adaptive strategy
+
+The third reference strategy changes target exposure rather than using a fixed
+position size. It classifies realized volatility into low, normal and high
+regimes using rolling quantiles, then scales a momentum signal accordingly.
+
+Typical defaults:
+
+- low volatility: 1.00x target exposure
+- normal volatility: 0.60x
+- high volatility: 0.25x
+
+The signal remains delayed by one bar, and tests include a future-data leakage
+check.
+
+```bash
+python examples/run_volatility_regime_demo.py
+```
