@@ -6,5 +6,10 @@ from .portfolio_backtest import (
     run_portfolio_backtest,
 )
 from .risk import RiskConfig
+from .stream import (
+    CandleEvent,
+    MarketEvent,
+    PublicMarketStream,
+)
 
-__version__ = "0.5.0"
+__version__ = "0.6.0"
