@@ -99,17 +99,17 @@ def test_research_frame_uses_prior_funding(monkeypatch):
     loader = DydxHistoricalData(DydxIndexer())
 
     monkeypatch.setattr(
-        loader,
+        DydxHistoricalData,
         "candles",
-        lambda *args, **kwargs: pd.DataFrame(
+        lambda self, *args, **kwargs: pd.DataFrame(
             {"close": [100.0, 101.0, 102.0]},
             index=candle_index,
         ),
     )
     monkeypatch.setattr(
-        loader,
+        DydxHistoricalData,
         "funding",
-        lambda *args, **kwargs: pd.DataFrame(
+        lambda self, *args, **kwargs: pd.DataFrame(
             {"funding_rate": [0.001, 0.002, 0.003]},
             index=funding_index,
         ),
