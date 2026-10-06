@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.6.0
+
+- Added public dYdX WebSocket stream layer
+- Added v4_candles subscription and parser
+- Added v4_markets subscription and parser
+- Added candle, oracle-price and next-funding-rate event models
+- Added maintained mainnet WebSocket endpoint
+- Added websocket-client dependency
+- Explicitly kept nextFundingRate separate from confirmed funding settlement
+
 ## 0.5.0
 
 - Added stateful paper broker for incremental market updates

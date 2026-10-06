@@ -1,8 +1,8 @@
 # dYdX Open Strategy Lab
 
-Research-to-backtest tooling for systematic strategies on dYdX.
+Research-to-backtest and paper-trading tooling for systematic strategies on dYdX.
 
-The project is deliberately research-first. v0.5.0 contains no wallet handling,
+The project is deliberately research-first. v0.6.0 contains no wallet handling,
 order signing or live-order code.
 
 ## Current reference strategies
@@ -12,7 +12,7 @@ order signing or live-order code.
 Uses persistent funding, momentum confirmation and realized volatility to decide
 whether a carry-biased directional setup is tradable.
 
-This is **not** presented as delta-neutral because v0.2 has no external hedge leg.
+This is **not** presented as delta-neutral because there is no external hedge leg.
 
 ### 2. Cross-Sectional Market-Neutral Momentum
 
@@ -20,28 +20,28 @@ Ranks a basket of dYdX perpetual markets by volatility-adjusted momentum, holds
 the strongest names long and the weakest names short, and keeps portfolio net
 exposure close to zero.
 
-The implementation includes:
+### 3. Volatility-Regime Adaptive Strategy
 
-- fixed rebalance intervals
-- volatility-adjusted rankings
-- per-market weight caps
-- gross exposure limits
-- one-bar signal delay
-- trading fees and slippage
-- hourly funding cash flows
-- turnover tracking
+Classifies realized volatility into low, normal and high regimes and scales
+target exposure accordingly.
 
 ## Data layer
 
-The public adapter follows the maintained dYdX Indexer endpoints used by the
-official v4 clients:
+The public REST adapter follows the maintained dYdX Indexer endpoints used by
+the official v4 clients:
 
 - `GET /v4/perpetualMarkets`
 - `GET /v4/candles/perpetualMarkets/{market}`
 - `GET /v4/historicalFunding/{market}`
 
-The Indexer is a read-only data layer. Any future live execution adapter should
-use a maintained dYdX Chain client and keep signing material outside this package.
+The public WebSocket layer follows:
+
+- `v4_candles`
+- `v4_markets`
+
+Mainnet public WebSocket endpoint:
+
+`wss://indexer.dydx.trade/v4/ws`
 
 ## Repository layout
 
@@ -49,16 +49,22 @@ use a maintained dYdX Chain client and keep signing material outside this packag
 src/open_strategy_lab/
 ├── analytics.py
 ├── backtest.py
+├── paper.py
 ├── portfolio_backtest.py
 ├── risk.py
+├── stream.py
+├── walkforward.py
 ├── data/
+│   ├── cache.py
 │   ├── dydx.py
+│   ├── historical.py
 │   └── synthetic.py
 └── strategies/
     ├── base.py
     ├── portfolio_base.py
     ├── funding_aware.py
-    ├── cross_sectional_momentum.py\n    └── volatility_regime.py
+    ├── cross_sectional_momentum.py
+    └── volatility_regime.py
 ```
 
 ## Install
@@ -75,126 +81,61 @@ pip install -e ".[dev]"
 pytest -q
 ```
 
-## Single-market demo
-
-```bash
-python examples/run_demo.py
-```
-
-## Multi-market portfolio demo
-
-```bash
-python examples/run_portfolio_demo.py
-```
-
-The portfolio demo writes a JSON summary and a Markdown report under `artifacts/`.
-
-## Public dYdX data example
-
-```bash
-python examples/fetch_multi_market.py
-```
-
-Network access is only required for the public-data examples. Unit tests and
-synthetic demos are deterministic and work offline.
-
-## Scope
-
-v0.5.0 is suitable for research and grant-prototype review. It is not production
-trading software and makes no claim that the included strategies are profitable.
-
-Future milestones are expected to add longer historical-data collection,
-walk-forward validation, paper trading and a separate
-execution adapter.
-
-
 ## Historical dYdX datasets
 
-The historical loader collects explicit date ranges rather than relying on a
-single API response. Candle requests page forward using `fromISO` and `toISO`.
-Historical funding pages backward using `effectiveBeforeOrAt`.
-
-```python
-from open_strategy_lab.data import CsvCache, DydxHistoricalData, DydxIndexer
-
-loader = DydxHistoricalData(
-    DydxIndexer(),
-    cache=CsvCache(".cache/open_strategy_lab"),
-)
-
-frame = loader.research_frame(
-    "BTC-USD",
-    "2026-09-01T00:00:00Z",
-    "2026-09-07T00:00:00Z",
-)
-```
-
-Funding values are aligned backward to candles so a candle never receives a
-funding observation from the future.
+The historical loader pages explicit date ranges and can cache compressed CSV
+datasets locally. Funding is aligned backward to candles so future funding
+observations are never applied to prior candles.
 
 ## Walk-forward validation
 
-The framework can select strategy parameters on a training window and then
-evaluate the chosen configuration on the next unseen test window. The process
-rolls forward and aggregates out-of-sample results only.
+Parameter selection occurs on a training window. The chosen configuration is
+then evaluated on the next unseen window, and only out-of-sample results are
+aggregated.
 
 ```bash
 python examples/run_walk_forward_demo.py
 ```
 
-This is intended to make overfitting easier to detect before a strategy reaches
-paper or live trading.
-
-
-## Volatility-regime adaptive strategy
-
-The third reference strategy changes target exposure rather than using a fixed
-position size. It classifies realized volatility into low, normal and high
-regimes using rolling quantiles, then scales a momentum signal accordingly.
-
-Typical defaults:
-
-- low volatility: 1.00x target exposure
-- normal volatility: 0.60x
-- high volatility: 0.25x
-
-The signal remains delayed by one bar, and tests include a future-data leakage
-check.
-
-```bash
-python examples/run_volatility_regime_demo.py
-```
-
-
 ## Stateful paper trading
 
-v0.5 adds a stateful paper broker. Unlike the batch backtester, the broker
-processes one market observation at a time and maintains equity, open position,
-funding cash flow, transaction costs and fill history between updates.
+The paper broker processes market observations incrementally and maintains
+equity, open position, funding cash flow, transaction costs and fill history.
 
-The accounting model is regression-tested against the batch backtester so the
-same signal stream produces the same final equity and PnL components.
-
-```python
-from open_strategy_lab import BacktestConfig, PaperBroker, RiskConfig
-
-broker = PaperBroker(
-    BacktestConfig(initial_equity=10_000, target_leverage=1.0),
-    RiskConfig(max_leverage=1.0),
-)
-
-broker.step(
-    timestamp,
-    price=100_000.0,
-    funding_rate=0.0001,
-    target_exposure=0.5,
-)
-```
-
-For a deterministic replay:
+The paper accounting model is regression-tested against the batch backtester.
 
 ```bash
 python examples/run_paper_demo.py
 ```
 
-This layer still does not contain wallet, signing or live-order functionality.
+## Public market stream
+
+The WebSocket layer can subscribe to candle and market updates without private
+account access.
+
+```python
+from open_strategy_lab import PublicMarketStream
+
+stream = PublicMarketStream(
+    on_candle=print,
+    on_market=print,
+)
+
+stream.add_candles("BTC-USD", "1HOUR")
+stream.add_markets()
+stream.run_forever()
+```
+
+The `v4_markets` feed may expose `nextFundingRate`. This is a forward-looking
+market value and is **not treated as a confirmed funding payment** by the paper
+broker. Confirmed funding settlement must come from an appropriate historical or
+settlement data source before being booked into PnL.
+
+## Scope
+
+v0.6.0 is suitable for research, paper-trading experiments and grant-prototype
+review. It is not production trading software and makes no claim that the
+included strategies are profitable.
+
+Wallet handling, signing and live order placement remain intentionally out of
+scope.
