@@ -1,2 +1,4 @@
+from .cache import CsvCache
 from .dydx import DydxIndexer
-from .synthetic import make_demo_data
+from .historical import DydxHistoricalData
+from .synthetic import make_demo_data, make_portfolio_demo_data
