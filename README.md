@@ -2,7 +2,7 @@
 
 Research-to-backtest tooling for systematic strategies on dYdX.
 
-The project is deliberately research-first. v0.4.0 contains no wallet handling,
+The project is deliberately research-first. v0.5.0 contains no wallet handling,
 order signing or live-order code.
 
 ## Current reference strategies
@@ -100,7 +100,7 @@ synthetic demos are deterministic and work offline.
 
 ## Scope
 
-v0.4.0 is suitable for research and grant-prototype review. It is not production
+v0.5.0 is suitable for research and grant-prototype review. It is not production
 trading software and makes no claim that the included strategies are profitable.
 
 Future milestones are expected to add longer historical-data collection,
@@ -164,3 +164,37 @@ check.
 ```bash
 python examples/run_volatility_regime_demo.py
 ```
+
+
+## Stateful paper trading
+
+v0.5 adds a stateful paper broker. Unlike the batch backtester, the broker
+processes one market observation at a time and maintains equity, open position,
+funding cash flow, transaction costs and fill history between updates.
+
+The accounting model is regression-tested against the batch backtester so the
+same signal stream produces the same final equity and PnL components.
+
+```python
+from open_strategy_lab import BacktestConfig, PaperBroker, RiskConfig
+
+broker = PaperBroker(
+    BacktestConfig(initial_equity=10_000, target_leverage=1.0),
+    RiskConfig(max_leverage=1.0),
+)
+
+broker.step(
+    timestamp,
+    price=100_000.0,
+    funding_rate=0.0001,
+    target_exposure=0.5,
+)
+```
+
+For a deterministic replay:
+
+```bash
+python examples/run_paper_demo.py
+```
+
+This layer still does not contain wallet, signing or live-order functionality.
