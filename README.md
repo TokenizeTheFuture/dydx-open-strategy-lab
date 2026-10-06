@@ -139,3 +139,10 @@ included strategies are profitable.
 
 Wallet handling, signing and live order placement remain intentionally out of
 scope.
+
+
+## Technical documentation
+
+- [Architecture](docs/ARCHITECTURE.md)
+- [Research methodology](docs/RESEARCH_METHODOLOGY.md)
+- [Technical status and grant milestones](docs/TECHNICAL_STATUS.md)
