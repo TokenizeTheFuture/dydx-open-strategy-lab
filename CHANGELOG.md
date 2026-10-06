@@ -1,5 +1,22 @@
 # Changelog
 
+## 0.3.1
+
+- Added dedicated dYdX historical range loader
+- Added forward candle pagination with explicit date windows
+- Added backward historical funding pagination
+- Added duplicate and boundary protection across API pages
+- Added cached merged research frames with prior-known funding alignment
+- Enabled CI for the v0.3 development branch
+
+## 0.3.0
+
+- Added local compressed CSV cache for research datasets
+- Added walk-forward parameter selection and out-of-sample evaluation
+- Added reusable backtesting from precomputed signals
+- Added chained out-of-sample performance summary
+- Added cache and walk-forward test coverage
+
 ## 0.2.1
 
 - Fixed dYdX adapter tests for the slotted Indexer client
