@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.3.0
+
+- Added local compressed CSV cache for research datasets
+- Added walk-forward parameter selection and out-of-sample evaluation
+- Added reusable backtesting from precomputed signals
+- Added chained out-of-sample performance summary
+- Added cache and walk-forward test coverage
+
 ## 0.2.1
 
 - Fixed dYdX adapter tests for the slotted Indexer client
