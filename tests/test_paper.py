@@ -77,7 +77,7 @@ def test_target_exposure_is_clipped():
     )
 
     assert snapshot.signal == 1.0
-    assert snapshot.position_notional <= snapshot.equity + 1.0
+    assert abs(snapshot.position_notional) <= 10_000.0 + 1e-9
 
 
 def test_invalid_price_is_rejected():
